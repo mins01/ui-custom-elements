@@ -16,7 +16,7 @@ export default class MultiFormControlWrapper extends HTMLElement {
     this.internals = this.attachInternals();
 
     this.initialized = false;
-    this.container = null;
+    // this.container = null;
     this.wrap = null;
 
     // 입력 이벤트
@@ -25,6 +25,7 @@ export default class MultiFormControlWrapper extends HTMLElement {
 
       this.updateValidity();
       this.syncFormValue();
+      this.setAttribute('value',this.value)
 
       if (this.checkAppendable()) {
         this.appendFormControl();
@@ -51,7 +52,7 @@ export default class MultiFormControlWrapper extends HTMLElement {
 
   connectedCallback() {
     if (!this.initialized) {
-      this.initFormControls();
+      this.initFormControls(this.getAttribute('value'));
       this.initialized = true;
     }
 
@@ -108,7 +109,7 @@ export default class MultiFormControlWrapper extends HTMLElement {
 
   // 외부 template
   get templateFormControl() {
-    return this.querySelector(':scope > template[slot="slot-template"]');
+    return this.querySelector(':scope > template');
   }
 
   // 내부 입력 요소
@@ -130,16 +131,18 @@ export default class MultiFormControlWrapper extends HTMLElement {
   }
 
   set value(newValue) {
-    // 필요할 경우 외부 값으로 내부 입력 요소 초기화
+    this.initFormControls(newValue)
+    if(this.getAttribute('value') !== this.value){
+      this.setAttribute('value',this.value)
+    }
   }
 
   // 초기화
-  initFormControls() {
+  initFormControls(text=null) {
     // 외부 template이 없으면 기본 template 생성
     if (!this.templateFormControl) {
       const template = document.createElement('template');
 
-      template.slot = 'slot-template';
       template.innerHTML = `
         <input type="text" class="form-field">
       `;
@@ -147,26 +150,31 @@ export default class MultiFormControlWrapper extends HTMLElement {
       this.appendChild(template);
     }
 
-    // Light DOM에 container 생성
-    this.container = document.createElement('div');
-    this.container.className = 'multi-form-container';
 
     // 입력 요소를 담을 영역
     this.wrap = document.createElement('div');
     this.wrap.className = 'multi-form-wrap';
-
-    this.container.appendChild(this.wrap);
-    this.appendChild(this.container);
+    this.appendChild(this.wrap);
 
     this.clearFormControls();
+
+
+    if(text){
+        const values = text?.split(',') || [];
+        values
+          .map(v => v.trim())
+          .filter(Boolean)
+          .forEach(v => this.appendFormControl(v));
+    }
 
     if (this.max > 0) {
       this.appendFormControl();
     }
+    this.syncFormValue();    
   }
 
   // 입력 요소 추가
-  appendFormControl() {
+  appendFormControl(value=null) {
     const template = this.templateFormControl;
 
     if (!template) {
@@ -178,7 +186,7 @@ export default class MultiFormControlWrapper extends HTMLElement {
     }
 
     const clone = template.content.cloneNode(true);
-
+    if(value) clone.querySelector('input, select, textarea').value = value;
     this.wrap.appendChild(clone);
   }
 
@@ -218,17 +226,18 @@ export default class MultiFormControlWrapper extends HTMLElement {
 
   // FormData 동기화
   syncFormValue() {
-    const formData = new FormData();
-    const name = this.getAttribute('name');
-
-    if (name) {
-      this.values.forEach(value => {
-        formData.append(name, value);
-      });
+    if(this.values.length){
+      const formData = new FormData();
+      this.values.forEach(value => { formData.append(this.getAttribute('name'), value);});
+      this.internals.setFormValue(formData);
+    }else{
+      // 빈 문자열 처리 안함. 값이 없으면 null 임. 전송 안하도록 설정.
+      // formData.append(this.getAttribute('name'), ''); 
+      this.internals.setFormValue(null);
     }
-
-    this.internals.setFormValue(formData);
   }
+
+
 
   // 유효성 검사
   updateValidity() {

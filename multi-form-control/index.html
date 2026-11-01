@@ -58,6 +58,18 @@
             font-size: 20px;;
         }
     </style>
+    <style>
+        multi-form-control-wrapper .multi-form-wrap{
+            display: flex;
+            gap:4px;
+            flex-wrap: wrap;
+        }
+        multi-form-control-wrapper .form-control{
+            field-sizing: content;
+            min-width: 6em;
+            width:auto;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -91,6 +103,8 @@
                             </select>
                         </template>
                     </multi-form-control>
+                    <h3>multi-value</h3>
+                    <multi-form-control name="multi-value" value="text1,1234,ABCD,한글"></multi-form-control>
                     <h3>multi-bootstrap (style not work)</h3>
                     <multi-form-control name="multi-bootstrap" max="4">
                         <template slot="slot-template">
@@ -109,9 +123,18 @@
                         key,
                         value
                         })));return false;">
-                    <h3>multi-bootstrap</h3>
+                    <h3>multi-empty</h3>
+                    <multi-form-control-wrapper name="multi-empty" max="4">
+                    </multi-form-control-wrapper>
+                    <h3>multi-bootstrap(max="4")</h3>
                     <multi-form-control-wrapper name="multi-bootstrap" max="4">
-                        <template slot="slot-template">
+                        <template>
+                            <input type="text" class="form-control form-control-lg">
+                        </template>
+                    </multi-form-control-wrapper>
+                    <h3>multi-value</h3>
+                    <multi-form-control-wrapper name="multi-value" value="text1,1234,ABCD,한글">
+                        <template>
                             <input type="text" class="form-control form-control-lg">
                         </template>
                     </multi-form-control-wrapper>

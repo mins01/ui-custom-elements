@@ -44,7 +44,7 @@ export default class MultiFormControl extends HTMLElement {
     super();
 
     this.internals = this.attachInternals();
-    
+    this.initialized = false;
     
 
     const shadowRoot = this.attachShadow({ mode: 'open' });
@@ -60,7 +60,8 @@ export default class MultiFormControl extends HTMLElement {
     })
     this.container.addEventListener('input',(event)=>{
       this.updateValidity();
-      this.syncFormValue()
+      this.syncFormValue();
+      this.setAttribute('value',this.value)
       if(this.checkAppendable()){
         this.appendFormControl();
       }
@@ -88,9 +89,11 @@ export default class MultiFormControl extends HTMLElement {
   }
 
   connectedCallback() {
-    this.initFormControls();
+    if(!this.initialized){
+      this.initFormControls(this.getAttribute('value'));
+      this.initialized = true;
+    }
     this.updateValidity();
-    this.internals.setFormValue('');
     
   }
 
@@ -122,8 +125,10 @@ export default class MultiFormControl extends HTMLElement {
   }
 
   set value(newValue) {
-    // this._value = newValue;
-    // this.internals.setFormValue(newValue);
+    this.initFormControls(newValue)
+    if(this.getAttribute('value') !== this.value){
+      this.setAttribute('value',this.value)
+    }
   }
 
   get required() {
@@ -137,9 +142,16 @@ export default class MultiFormControl extends HTMLElement {
 
 
   syncFormValue(){
-    const formData = new FormData();
-    this.values.forEach(value => { formData.append(this.getAttribute('name'), value);});
-    this.internals.setFormValue(formData);
+    if(this.values.length){
+      const formData = new FormData();
+      this.values.forEach(value => { formData.append(this.getAttribute('name'), value);});
+      this.internals.setFormValue(formData);
+    }else{
+      // 빈 문자열 처리 안함. 값이 없으면 null 임. 전송 안하도록 설정.
+      // formData.append(this.getAttribute('name'), ''); 
+      this.internals.setFormValue(null);      
+    }
+    
   }
 
 
@@ -161,17 +173,26 @@ export default class MultiFormControl extends HTMLElement {
 
 
 
-  initFormControls(){
+  initFormControls(text=null){   
     this.clearFormControls();
+    if(text){
+        const values = text?.split(',') || [];
+        values
+          .map(v => v.trim())
+          .filter(Boolean)
+          .forEach(v => this.appendFormControl(v));
+    }
     this.appendFormControl();
+    this.syncFormValue();    
   }
 
-  appendFormControl(){
+  appendFormControl(value=null){
     const template = this.templateFormControl;
     if (!template) {
       throw new Error('Form control template not found.');
     }
     const clone = template.content.cloneNode(true);
+    if(value) clone.querySelector('input, select, textarea').value = value;
     this.wrap.appendChild(clone);
   }
 
